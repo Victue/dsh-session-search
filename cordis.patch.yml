@@ -1,0 +1,23 @@
+# Bundle patch for `dsh-session-search`.
+#
+# Installing this package as a *bundle* (declared in the profile's package.json
+# `dsh.profile.bundles`) makes the loader read this file and insert the row below.
+# `plugin_manager action=install_bundle` performs that wiring for you.
+#
+# To mount the plugin directly instead, add the same row to the profile's own
+# `cordis.patch.yml`. A row `name` may be a bare package specifier (resolved from the
+# profile's node_modules, as here), a relative path anchored beside the patch file, or
+# an absolute path.
+#
+# `config` is optional; the plugin exports no `Config` schema, so whatever map you put
+# here is handed to `apply(ctx, config)` untouched. Recognised keys:
+#   root                absolute sessions root (default `<DSH_HOME>/sessions`)
+#   maxHits             upper bound on returned hits (default 300)
+#   maxCharsPerRecord   per-record text ceiling (default 65536)
+#   includeSubagents    include subagent sessions by default (default false)
+#   warmup              build the index in the background at startup (default true)
+#   warmupDelayMs       delay before that background build (default 3000)
+
+- insert:
+    - id: session-search
+      name: 'dsh-session-search'

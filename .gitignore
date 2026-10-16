@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Harness runtime scratch
+.dsh/
+*.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local install artefacts
+*.tgz
+pnpm-lock.yaml

@@ -1,0 +1,68 @@
+{
+  "name": "dsh-session-search",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Global search across the content of every DSH session, with results ordered by content time.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "search",
+    "session"
+  ],
+  "license": "MIT",
+  "author": "Victue",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Victue/dsh-session-search.git"
+  },
+  "homepage": "https://github.com/Victue/dsh-session-search#readme",
+  "bugs": {
+    "url": "https://github.com/Victue/dsh-session-search/issues"
+  },
+  "main": "lib/entry.js",
+  "exports": {
+    ".": {
+      "default": "./lib/entry.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "locale/*.json",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "icon": "./icon.svg",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.15"
+  },
+  "scripts": {
+    "test": "node --test test/host.test.mjs test/client.test.mjs"
+  }
+}

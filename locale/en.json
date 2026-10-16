@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Session content search",
+    "description": "Global search across the content of every session, ordered by content time. Host-side index over session transcripts plus a sidebar panel."
+  }
+}
