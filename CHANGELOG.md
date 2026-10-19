@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-10-19
+
+### Fixed
+
+- **The find bar overlapped the desktop window controls.** It was anchored to the viewport's
+  top-right corner, which in the desktop app is where minimize / maximize / close live. The bar is
+  now positioned from the conversation scroller's rectangle — inside the conversation column and
+  below the header — and re-anchors on window resize and layout changes (`ResizeObserver`).
+
 ## [0.3.0] — 2026-10-19
 
 ### Added
