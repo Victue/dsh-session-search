@@ -295,3 +295,42 @@ test('the global page offers a session scope picker', () => {
   // The "all sessions" option is always available.
   assert.match(textOf(tree), /(scopeAll)/)
 })
+
+test('the scope picker lists only the sessions that matched, with hit counts', () => {
+  const result = sampleResult()
+  result.facets = [
+    { sessionId: 'session-1', sessionTitle: '示例会话', cwd: '', workspace: 'w', total: 5, lastTime: 1 },
+    { sessionId: 'session-2', sessionTitle: '另一个会话', cwd: '', workspace: 'w', total: 2, lastTime: 2 },
+  ]
+  const { plugin } = instantiate({ 0: '命中', 5: { status: 'done', result, error: null } })
+  const { ctx, slots } = createClientContext()
+  plugin.apply(ctx)
+  const SearchPanel = slots.find((entry) => entry.options.name === 'main').component
+
+  const tree = SearchPanel({ ctx, t: baseT })
+  const select = find(tree, (node) => node.type === 'select')
+  const options = select.props.children
+  assert.equal(options.length, 3, 'all-sessions plus exactly the two matching sessions')
+  assert.deepEqual(options.slice(1).map((option) => textOf(option)), ['示例会话 (5)', '另一个会话 (2)'])
+})
+
+test('clicking a global hit opens the hit dialog with the query that produced it', () => {
+  const result = sampleResult()
+  const { plugin } = instantiate({ 0: '命中', 5: { status: 'done', result, error: null } })
+  const { ctx, slots } = createClientContext()
+  plugin.apply(ctx)
+  const SearchPanel = slots.find((entry) => entry.options.name === 'main').component
+  const Dialog = slots.find((entry) => entry.options.name === 'shell.overlay').component
+
+  // Render the page first: the stub React hands out useState slots in call order, so the
+  // panel's overrides only line up when it is the first component rendered.
+  const tree = SearchPanel({ ctx, t: baseT })
+  assert.equal(Dialog({ ctx, t: baseT }), null, 'the dialog starts closed')
+  const row = find(tree, (node) => node.props?.className === 'dsss-row')
+  assert.ok(row, 'a result row must be present')
+  row.props.onClick()
+
+  const opened = Dialog({ ctx, t: baseT })
+  assert.ok(opened, 'the dialog must open for the picked hit')
+  assert.match(textOf(opened), /示例会话/)
+})

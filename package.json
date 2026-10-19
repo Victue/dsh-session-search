@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-search",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "Global search across the content of every DSH session, with results ordered by content time.",
   "keywords": [

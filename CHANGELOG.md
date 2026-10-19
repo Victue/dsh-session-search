@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] — 2026-10-19
+
+### Fixed
+
+- **No highlight in the hit context view when it was opened from the global page.** The dialog
+  carried the hit but not the query terms, so the context renderer had nothing to mark. The query
+  and its terms now travel with the hit, the dialog seeds its search box with that query, and the
+  match marker itself was made clearly visible (stronger fill, ring, bold).
+- **The session scope picker listed every indexed session** instead of the sessions that actually
+  matched. The host now returns per-session match facets from the same scan — counted across all
+  sessions even when the hits are scoped — and the picker shows only those sessions, with hit
+  counts (`title (12)`). With no active query it still lists recent sessions.
+
 ## [0.2.0] — 2026-10-19
 
 ### Added

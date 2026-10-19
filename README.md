@@ -129,7 +129,9 @@ path relative to the patch file, or an absolute path):
    query matches inside a longer run, which the shipped FTS5 engine cannot do).
 3. Narrow the results with the chips — *All* / *My prompts* / *Replies* / *Tool output* — and the
    *Include subagent sessions* toggle (off by default; subagent sessions routinely outnumber your
-   own). The **session scope picker** at the top of the page limits the query to one session.
+   own). The **session scope picker** at the top lists only the sessions that actually matched the
+   current query, with hit counts (`title (12)`), so scoping to one of them is one click; with no
+   query it lists recent sessions.
 4. Click any hit to open it **with its context**: the matched record plus four records before and
    after, the match highlighted and untruncated. Use previous/next to move between hits, and
    *Open session* to jump to the session itself.
@@ -266,17 +268,18 @@ update and re-install the bundle.
 
 ## Verification status
 
-- `npm test` → **25/25 passing**.
+- `npm test` → **27/27 passing**.
   - Host (16): CJK substring hits against the real corpus, time-descending order, subagent
-    filtering, session-scoped queries, the scope-picker listing, the context window around a hit, a
-    full *HTTP route → RPC envelope → query → payload* round trip, plus 405 / 404 / 400 /
-    mismatched-envelope failure paths.
-  - Browser half (9): the bundle is loaded **the way the page loads it** (`window.__ModuleLoader__` +
+    filtering, session-scoped queries, per-session match facets, the scope-picker listing, the
+    context window around a hit, a full *HTTP route → RPC envelope → query → payload* round trip,
+    plus 405 / 404 / 400 / mismatched-envelope failure paths.
+  - Browser half (11): the bundle is loaded **the way the page loads it** (`window.__ModuleLoader__` +
     factory + a stubbed `require`), asserting that the module id equals the package name, that it
     requires **nothing but `react`**, that all four surfaces register (panel icon, main page, session
     header button, dialog layer), that the shortcut is declared on desktop profiles only, that a
     *rejected* shortcut registration cannot break activation, and rendering the header button, the
-    closed dialog and the result/highlight/scope-picker states of the page.
+    closed dialog, the result/highlight state, the scope picker (including its matched-sessions-only
+    behaviour) and the open-hit dialog.
 - Install result: `application: "applied"`, `warnings: []`.
 - Host: `POST /session-search/search` returns **401** (the route exists and is behind the
   admission fence), while an unknown channel returns 405.

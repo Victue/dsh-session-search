@@ -220,6 +220,12 @@ test('a sessionIds payload scopes the search to that session alone', { skip: !ha
   assert.ok(scoped.total > 0)
   assert.equal(scoped.sessions, 1)
   assert.ok(scoped.hits.every((hit) => hit.sessionId === target))
+  // The picker must keep offering every matching session even while the hits are scoped,
+  // and the scoped session's facet count must agree with its scoped total.
+  assert.ok(scoped.facets.length > 1, 'facets must describe every matching session, not just the scope')
+  const targetFacet = scoped.facets.find((facet) => facet.sessionId === target)
+  assert.ok(targetFacet, 'the scoped session must appear in the facets')
+  assert.equal(targetFacet.total, scoped.total)
 })
 
 test('the sessions endpoint lists pickable sessions newest first', { skip: !hasCorpus }, async () => {
