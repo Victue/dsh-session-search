@@ -154,7 +154,20 @@ test/client.test.mjs        浏览器端测试
 
 浏览器端调用 `ctx.connection.rpc.call('/session-search', 'search', {…}, signal)`。主机端在该路径上注册前缀路由，使用标准 Connection RPC 信封（`{type:'client-request', rpcId, method, payload}` → `{type:'server-response', rpcId, result:{ok,value}}`），并复用 Connection 服务的 `admit()` 准入栅栏 —— 未认证请求得到 401。
 
-> ⚠️ **上游缺陷。** `ctx.connection.rpc.handle()` 看起来是为此设计的 API，但它**任何插件都用不了**：它的 `get rpc()` 取 `owner = this.ctx`（Connection 插件**自己**的上下文），而那个上下文只 inject 了 `credentials`，于是每次调用都必然抛 `cannot get property "webServer" without inject`。正因为没有官方插件用它，这个缺陷从外面看不见。本插件改为在自己的上下文（已 inject `webServer`）上注册路由。参见 `dsh-client-connection/lib/index.js` 的 `register()` 与 `get rpc()`。
+> ⚠️ **上游缺陷 —— 0.2.0-rc.2 复现，0.2.1-rc.2 依然存在。**
+> `ctx.connection.rpc.handle()`（以及 `rpc.intercept()`）看起来是为此设计的 API，但插件用不了。
+> 在 `dsh-client-connection/lib/index.js` 里，`get rpc()` 取 `owner = this.ctx`（`:724`）并传给
+> `register(owner, …)`（`:855`），后者的最后一行是 `owner.effect(() => owner.webServer.register(route), …)`（`:871`）。
+> 而该上下文只 inject 了 `credentials`（`:1013`），所以 `owner.webServer` 在它上面不是已注入服务，
+> **每一次**注册都会抛 `cannot get property "webServer" without inject` —— 哪怕调用方插件自己的
+> `inject` 里明明有 `webServer`。没有官方插件调用 `rpc.handle`，所以这个缺陷从外面看不见。
+> 浏览器侧的 `rpc.call()` 是正常的，坏的只是主机端注册通道。`connection.fetch.register()` 不受影响
+> （`registerFetchRoute` 不碰 `owner.webServer`），但它只是挂进 Connection 服务自己的 `/api` 分发，
+> 并不会新建路由，所以不能替代。
+>
+> 复现方式：任意主机端插件在 `apply` 里调用 `ctx.connection.rpc.handle('/probe', async () => 1)`，
+> 并且自己的 `inject` 带上 `webServer` —— 立刻抛错。本插件的绕过方式是：在自己的上下文（确实 inject 了
+> `webServer`）上注册前缀路由，并复用 `ctx.connection.admit(request)` 拿到完全相同的信任/认证栅栏。
 
 主机端另外 `ctx.provide('sessionContentSearch', …)` 暴露同一个索引，便于别的插件复用或人工排查 profile。
 

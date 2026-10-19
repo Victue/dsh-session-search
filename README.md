@@ -197,13 +197,23 @@ The host registers a prefix route on that path, speaks the standard Connection R
 (`{type:'client-request', rpcId, method, payload}` → `{type:'server-response', rpcId, result:{ok,value}}`),
 and reuses the Connection service's `admit()` admission fence, so unauthenticated callers get a 401.
 
-> ⚠️ **Upstream defect.** `ctx.connection.rpc.handle()` looks like the intended API for this, but it
-> **cannot be used from a plugin at all**: its `get rpc()` façade calls `register(owner, …)` with
-> `owner = this.ctx` — the Connection plugin's *own* context — which injects only `credentials` and
-> therefore throws `cannot get property "webServer" without inject` on every call. Precisely because
-> no shipped plugin uses it, the defect is not visible from the outside. This plugin registers the
-> route on its own context (which does inject `webServer`) instead. See
-> `dsh-client-connection/lib/index.js`, the `register()` and `get rpc()` methods.
+> ⚠️ **Upstream defect — reproduced on 0.2.0-rc.2, still present in 0.2.1-rc.2.**
+> `ctx.connection.rpc.handle()` (and `rpc.intercept()`) look like the intended API for this, but a
+> plugin cannot use them. In `dsh-client-connection/lib/index.js`, `get rpc()` reads
+> `owner = this.ctx` (`:724`) and hands it to `register(owner, …)` (`:855`), whose last line is
+> `owner.effect(() => owner.webServer.register(route), …)` (`:871`). That context injects only
+> `credentials` (`:1013`), so `owner.webServer` is not an injected service on it and **every**
+> registration throws `cannot get property "webServer" without inject` — even when the calling
+> plugin itself has `webServer` in its own `inject`. No shipped plugin calls `rpc.handle`, which is
+> why the defect is invisible from the outside. `rpc.call()` on the *browser* side is fine; only
+> host-side channel registration is broken. `connection.fetch.register()` is not affected
+> (`registerFetchRoute` never touches `owner.webServer`) but it only feeds the Connection service's
+> own `/api` dispatch rather than creating a route, so it is not a substitute.
+>
+> Reproduction: from any host plugin, call `ctx.connection.rpc.handle('/probe', async () => 1)` in
+> `apply` with `webServer` in `inject` — it throws immediately. The workaround used here registers
+> the prefix route on the plugin's own context (which does inject `webServer`) and reuses
+> `ctx.connection.admit(request)` for the identical trust/auth fence.
 
 The host also does `ctx.provide('sessionContentSearch', …)`, exposing the same index so other plugins
 (or a human debugging a profile) can reuse it.
