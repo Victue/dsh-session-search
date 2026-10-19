@@ -178,6 +178,7 @@ test/client.test.mjs        浏览器端测试
 - 安装结果：`application: "applied"`，`warnings: []`。
 - 主机端：`POST /session-search/search` 返回 **401**（路由存在且被准入栅栏保护），而不存在的通道返回 405。
 - 客户端：实时槽位检查显示 `session-search` 在 `sidebar.panellist`（order 5）与 `main`（同 key）中**均已注册且 active**。
+- **整机重启确认：** 挂载本 bundle 后，DSH 0.2.1-rc.2 完整重启一次即正常启动，未产生任何 `crash-*.log`，面板图标注册成功、主机路由在线。
 
 **未验证：** 作者构建此插件的环境没有浏览器控制能力，因此**没有做视觉验证** —— 即没有实际点击图标、输入关键词、看到渲染结果。按 `cordis-plugin-development/references/verification.md` 的要求，结论只到「语法 + 清单 + 实时槽位注册 + 组件可渲染」这一层。最终观感请你自己确认。
 

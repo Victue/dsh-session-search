@@ -247,6 +247,8 @@ update and re-install the bundle.
   admission fence), while an unknown channel returns 405.
 - Client: live slot inspection shows `session-search` registered **and active** in both
   `sidebar.panellist` (order 5) and `main` (same key).
+- **Clean restart confirmed:** with the bundle mounted, a full DSH 0.2.1-rc.2 application restart
+  completes with no `crash-*.log` entry, the panel icon registered and the host route live.
 
 **Not verified:** the author had no browser control in the environment where this was built, so
 there was **no visual verification** — clicking the icon, typing a query and seeing rendered results
