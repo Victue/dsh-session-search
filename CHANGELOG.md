@@ -4,6 +4,29 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-10-19
+
+### Added
+
+- **Session-scoped search.** Search the content of one session instead of every session:
+  - a search button in the conversation header's right-aligned utilities
+    (`conversation.session.header.utilities`), opening a dialog already scoped to the
+    current session;
+  - a session scope picker on the global search page, listing indexed sessions by title,
+    so a query can be narrowed to one session.
+- **Hit context view.** A hit expands into the records around it (four before, four after),
+  with the matched record highlighted and untruncated, plus previous/next hit navigation
+  and an "open session" action. DSH exposes no public "scroll to seq" API, so this is how a
+  hit is located: the match is shown in its own context rather than scrolling the transcript.
+- Host endpoints `sessions` (scope-picker rows) and `context` (records around a hit), and
+  `sessionIds` scoping enforced end to end. A caller that names explicit sessions bypasses
+  the subagent default, so an in-session search inside a subagent session works.
+
+### Changed
+
+- Clicking a hit on the global search page now opens the hit's context view; opening the
+  session itself is one click further, through "Open session" in that view.
+
 ## [0.1.1] — 2026-10-19
 
 ### Fixed

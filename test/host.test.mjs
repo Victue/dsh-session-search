@@ -208,6 +208,63 @@ test('empty query short-circuits without touching the corpus', async () => {
   assert.deepEqual(payload.hits, [])
 })
 
+test('a sessionIds payload scopes the search to that session alone', { skip: !hasCorpus }, async () => {
+  const { ctx, call } = fakeContext()
+  apply(ctx, { warmup: false })
+
+  const broad = valueOf(await call(CHANNEL, 'search', { query: '会话', limit: 50 }))
+  assert.ok(broad.sessions > 1, 'the fixture query should span several sessions')
+  const target = broad.hits[0].sessionId
+
+  const scoped = valueOf(await call(CHANNEL, 'search', { query: '会话', limit: 50, sessionIds: [target] }))
+  assert.ok(scoped.total > 0)
+  assert.equal(scoped.sessions, 1)
+  assert.ok(scoped.hits.every((hit) => hit.sessionId === target))
+})
+
+test('the sessions endpoint lists pickable sessions newest first', { skip: !hasCorpus }, async () => {
+  const { ctx, call } = fakeContext()
+  apply(ctx, { warmup: false })
+  const { sessions } = valueOf(await call(CHANNEL, 'sessions', { limit: 50 }))
+  assert.ok(sessions.length > 0)
+  for (let index = 1; index < sessions.length; index++) {
+    const previous = sessions[index - 1].lastTime ?? 0
+    const current = sessions[index].lastTime ?? 0
+    assert.ok(previous >= current, 'rows must be ordered by last activity')
+  }
+  assert.equal(typeof sessions[0].sessionId, 'string')
+  assert.ok(sessions.every((row) => typeof row.documents === 'number'))
+})
+
+test('the context endpoint returns the matched record inside its window', { skip: !hasCorpus }, async () => {
+  const { ctx, call } = fakeContext()
+  apply(ctx, { warmup: false })
+
+  const found = valueOf(await call(CHANNEL, 'search', { query: '会话', limit: 1 }))
+  const hit = found.hits[0]
+  const { context } = valueOf(await call(CHANNEL, 'context', {
+    sessionId: hit.sessionId, seq: hit.seq, before: 2, after: 2,
+  }))
+
+  assert.ok(context, 'context must resolve for an indexed hit')
+  assert.equal(context.sessionId, hit.sessionId)
+  assert.equal(context.hitSeq, hit.seq)
+  const matched = context.records.filter((record) => record.isMatch)
+  assert.equal(matched.length, 1)
+  assert.equal(matched[0].seq, hit.seq)
+  assert.equal(typeof matched[0].text, 'string')
+  assert.ok(context.index >= 0 && context.index < context.total)
+})
+
+test('the context endpoint reports a missing hit as null', { skip: !hasCorpus }, async () => {
+  const { ctx, call } = fakeContext()
+  apply(ctx, { warmup: false })
+  const { context } = valueOf(await call(CHANNEL, 'context', {
+    sessionId: 'session-does-not-exist', seq: 1,
+  }))
+  assert.equal(context, null)
+})
+
 test('listSessionFiles discovers transcripts and tolerates a missing root', () => {
   assert.deepEqual(listSessionFiles(join(SESSIONS_ROOT, '__definitely_missing__')), [])
   if (hasCorpus) {

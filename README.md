@@ -69,6 +69,13 @@ registry validates a definition's defaults across every *declared* profile, thro
 `Conflicting shortcut defaults` from whichever plugin registers second. See
 [Compatibility](#compatibility) for what that cost once.
 
+For **searching inside the session you are reading**, the entry point is the `list` seat
+`conversation.session.header.utilities` — the right-aligned action row of the conversation header.
+It is additive (`replaceRisk: none`, ids `open-in-app` / `schedule-catalog` /
+`session-log-download` already sit there), always in reach, and needs no new global chrome. The
+result dialog renders in `shell.overlay`, the frame-wide layer documented as "the additive seat for
+a frame-wide surface of your own", so it floats above every column without stealing one.
+
 ---
 
 ## Install
@@ -114,16 +121,33 @@ path relative to the patch file, or an absolute path):
 
 ## Usage
 
+### Global search
+
 1. Click the magnifier icon in the sidebar (between *Plugins* and *Schedules*), or press
    `Ctrl/Cmd+Shift+F`.
 2. Type a query. Matching is **substring**, case-insensitive, and works for CJK (a 2-character
    query matches inside a longer run, which the shipped FTS5 engine cannot do).
 3. Narrow the results with the chips — *All* / *My prompts* / *Replies* / *Tool output* — and the
    *Include subagent sessions* toggle (off by default; subagent sessions routinely outnumber your
-   own).
-4. Click any hit to open its session.
+   own). The **session scope picker** at the top of the page limits the query to one session.
+4. Click any hit to open it **with its context**: the matched record plus four records before and
+   after, the match highlighted and untruncated. Use previous/next to move between hits, and
+   *Open session* to jump to the session itself.
+
+### Search inside one session
+
+A magnifier button sits in the conversation header's right-aligned utilities, next to the shipped
+session actions. Clicking it opens the same search dialog, already scoped to the session you are
+reading — type, pick a hit, and read it in context without leaving the conversation. `Esc` steps
+back from a hit to the results, then closes the dialog.
 
 Queries are debounced by 220 ms and each superseded query is aborted. `Esc` clears the box.
+
+> **On "locating" a hit.** DSH exposes no public API to scroll the transcript to a given event
+> sequence (`ChatNavigation.navigateToTurn` / `input.loadThrough(seq)` are private to the chat
+> panel). This plugin therefore locates a hit by showing the matched record *in its surrounding
+> context* inside its own dialog, with the record highlighted and no truncation. Precise scroll
+> positioning inside the official transcript is not achievable from a plugin today.
 
 ---
 
@@ -242,16 +266,17 @@ update and re-install the bundle.
 
 ## Verification status
 
-- `npm test` → **19/19 passing**.
-  - Host (12): CJK substring hits against the real corpus, time-descending order, subagent
-    filtering, and a full *HTTP route → RPC envelope → query → payload* round trip, plus 405 / 404 /
-    400 / mismatched-envelope failure paths.
-  - Browser half (7): the bundle is loaded **the way the page loads it** (`window.__ModuleLoader__` +
+- `npm test` → **25/25 passing**.
+  - Host (16): CJK substring hits against the real corpus, time-descending order, subagent
+    filtering, session-scoped queries, the scope-picker listing, the context window around a hit, a
+    full *HTTP route → RPC envelope → query → payload* round trip, plus 405 / 404 / 400 /
+    mismatched-envelope failure paths.
+  - Browser half (9): the bundle is loaded **the way the page loads it** (`window.__ModuleLoader__` +
     factory + a stubbed `require`), asserting that the module id equals the package name, that it
-    requires **nothing but `react`**, that the icon and panel register under matching
-    `id`/`key`, that the shortcut is declared on desktop profiles only, that a *rejected* shortcut
-    registration cannot break activation, and rendering the panel to an element tree for the empty,
-    result and highlight cases.
+    requires **nothing but `react`**, that all four surfaces register (panel icon, main page, session
+    header button, dialog layer), that the shortcut is declared on desktop profiles only, that a
+    *rejected* shortcut registration cannot break activation, and rendering the header button, the
+    closed dialog and the result/highlight/scope-picker states of the page.
 - Install result: `application: "applied"`, `warnings: []`.
 - Host: `POST /session-search/search` returns **401** (the route exists and is behind the
   admission fence), while an unknown channel returns 405.
@@ -269,9 +294,11 @@ was not performed. Per `cordis-plugin-development/references/verification.md`, c
 
 ## Known limitations
 
-- **Opening a hit takes you to the session, not to the matching record.** DSH exposes no public
-  "scroll to seq" API; the machinery (`ChatNavigation.navigateToTurn`, `input.loadThrough(seq)`) is
-  private to the chat panel.
+- **A hit cannot be scrolled to inside the transcript.** DSH exposes no public "scroll to seq"
+  API; the machinery (`ChatNavigation.navigateToTurn`, `input.loadThrough(seq)`) is private to the
+  chat panel. A hit is located by showing the matched record in its surrounding context inside this
+  plugin's dialog instead — that view is exact (the matched record, untruncated, plus its
+  neighbours), but it is not the official transcript.
 - The keyboard shortcut is **desktop-only**; Web profiles stay unbound so the plugin cannot collide
   with a shipped Web binding (see [Compatibility](#compatibility)). The sidebar icon always works.
 - The index lives in memory for the lifetime of the Host process; it is not persisted to disk (a
