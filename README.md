@@ -63,9 +63,11 @@ available:
 | `sidebar.workspaces` (where the existing search box lives) | ❌ **Not used.** It is a `single` seat occupied wholesale by `ui-workspace`, with `replaceRisk: shadows-shipped-ui` — taking it means replacing the entire shipped session browser and breaking on the next DSH release. |
 
 A **`Ctrl/Cmd+Shift+F`** shortcut (registered through `dsh-client-shortcuts`) selects the panel from
-anywhere. The combination is not on the reserved list, and `web:linux` is deliberately left
-unbound: the Web allowance there admits only a few two-modifier combos, and a shortcut definition
-is validated across all six profiles atomically.
+anywhere. It is bound on the **desktop profiles only** on purpose: on the Web profiles the shipped
+`session.fork` (`dsh-client-ui-workspace`) already owns `KeyF + primary+shift`, and the shortcut
+registry validates a definition's defaults across every *declared* profile, throwing
+`Conflicting shortcut defaults` from whichever plugin registers second. See
+[Compatibility](#compatibility) for what that cost once.
 
 ---
 
@@ -208,17 +210,38 @@ The host also does `ctx.provide('sessionContentSearch', …)`, exposing the same
 
 ---
 
+## Compatibility
+
+Built and verified against **DeepSeek Harness 0.2.1-rc.2** (Electron 44.7.0, `@deepseek-ai/cordis`
+4.0.5). It has no runtime dependency on any Harness package, so only the documented service and slot
+contracts matter.
+
+**0.2.1-rc.2 incident — fixed in 0.1.1.** Version 0.1.0 also registered `Ctrl/Cmd+Shift+F` on the
+Web profiles. 0.2.1-rc.2 ships `session.fork` in `dsh-client-ui-workspace` bound to
+`KeyF + primary+shift` on Web, and `dsh-client-shortcuts` validates a definition's defaults across
+every declared profile, throwing `Conflicting shortcut defaults` from whichever plugin registers
+second. That was `ui-workspace`: its failure left 16 client entries waiting for the `uiWorkspace`
+service and turned the renderer boot into a fatal `web boot: 17 entries did not activate`. DSH's
+crash recovery then sanitized the profile back to its default bundle list.
+
+0.1.1 binds **desktop profiles only** and guards the registration, so a future release re-binding the
+combination costs this panel its shortcut — never the application's boot. If you installed 0.1.0,
+update and re-install the bundle.
+
+---
+
 ## Verification status
 
-- `npm test` → **18/18 passing**.
+- `npm test` → **19/19 passing**.
   - Host (12): CJK substring hits against the real corpus, time-descending order, subagent
     filtering, and a full *HTTP route → RPC envelope → query → payload* round trip, plus 405 / 404 /
     400 / mismatched-envelope failure paths.
-  - Browser half (6): the bundle is loaded **the way the page loads it** (`window.__ModuleLoader__` +
+  - Browser half (7): the bundle is loaded **the way the page loads it** (`window.__ModuleLoader__` +
     factory + a stubbed `require`), asserting that the module id equals the package name, that it
     requires **nothing but `react`**, that the icon and panel register under matching
-    `id`/`key`, that the shortcut definition is valid across all six profiles, and rendering the
-    panel to an element tree for the empty, result and highlight cases.
+    `id`/`key`, that the shortcut is declared on desktop profiles only, that a *rejected* shortcut
+    registration cannot break activation, and rendering the panel to an element tree for the empty,
+    result and highlight cases.
 - Install result: `application: "applied"`, `warnings: []`.
 - Host: `POST /session-search/search` returns **401** (the route exists and is behind the
   admission fence), while an unknown channel returns 405.
@@ -237,6 +260,8 @@ was not performed. Per `cordis-plugin-development/references/verification.md`, c
 - **Opening a hit takes you to the session, not to the matching record.** DSH exposes no public
   "scroll to seq" API; the machinery (`ChatNavigation.navigateToTurn`, `input.loadThrough(seq)`) is
   private to the chat panel.
+- The keyboard shortcut is **desktop-only**; Web profiles stay unbound so the plugin cannot collide
+  with a shipped Web binding (see [Compatibility](#compatibility)). The sidebar icon always works.
 - The index lives in memory for the lifetime of the Host process; it is not persisted to disk (a
   cold build is ~1.2 s, normally invisible).
 - Matching is **substring**, not tokenized and not semantic. Multiple whitespace-separated terms are

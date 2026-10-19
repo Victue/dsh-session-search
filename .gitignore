@@ -14,3 +14,6 @@ Thumbs.db
 # Local install artefacts
 *.tgz
 pnpm-lock.yaml
+
+# Scratch space for inspecting the installed DSH runtime
+_probe/

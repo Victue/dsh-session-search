@@ -51,7 +51,7 @@ DSH 的 Web/桌面 UI **没有**全局顶栏，也**没有**全局命令面板�
 | `sidebar.footer.action`（设置按钮旁）+ `shell.overlay` 弹层 | ⭕ 可行的次选，更适合做成「聚光灯」式快速搜索。代价是要自己处理弹层、焦点与 Esc，而且结果区放不下多少片段。 |
 | `sidebar.workspaces`（现有那个搜索框所在区域） | ❌ **不采用。** 它是 `single` 槽位，整体被 `ui-workspace` 占用，`replaceRisk: shadows-shipped-ui` —— 占它等于替换掉官方整个会话浏览区，DSH 一升级就可能碎。 |
 
-另外通过 `dsh-client-shortcuts` 注册了 **`Ctrl/Cmd+Shift+F`**，可从任意位置切到该面板。该组合不在保留快捷键列表里；`web:linux` 故意留空 —— Web 下 Linux 只放行少数双修饰键组合，而快捷键定义会跨六个平台原子校验。
+另外通过 `dsh-client-shortcuts` 注册了 **`Ctrl/Cmd+Shift+F`**，可从任意位置切到该面板。该键**只在桌面端绑定**：Web 平台的 `KeyF + primary+shift` 已被官方 `session.fork`（`dsh-client-ui-workspace`）占用，而快捷键注册表会按**所有已声明平台**校验默认键，撞车时**后注册者**抛 `Conflicting shortcut defaults`。这个坑踩过一次，见[兼容性](#兼容性)。
 
 ---
 
@@ -160,11 +160,21 @@ test/client.test.mjs        浏览器端测试
 
 ---
 
+## 兼容性
+
+在 **DeepSeek Harness 0.2.1-rc.2**（Electron 44.7.0、`@deepseek-ai/cordis` 4.0.5）上构建与验证。插件运行时**不依赖任何 Harness 包**，只依赖文档化的服务与槽位契约。
+
+**0.2.1-rc.2 事故 —— 0.1.1 已修复。** 0.1.0 在 Web 平台也注册了 `Ctrl/Cmd+Shift+F`。而 0.2.1-rc.2 的 `dsh-client-ui-workspace` 内置了 `session.fork`，在 Web 上正好是 `KeyF + primary+shift`；`dsh-client-shortcuts` 会按所有已声明平台校验默认键，撞车时**后注册的一方**抛 `Conflicting shortcut defaults`。这次是 `ui-workspace`：它一挂，16 个等待 `uiWorkspace` 服务的客户端条目全部停在 pending，渲染进程启动直接变成致命错误 `web boot: 17 entries did not activate`；随后 DSH 的崩溃恢复把 profile 重置回了默认 bundle 列表。
+
+0.1.1 起**只绑定桌面平台**，并且把注册过程包了 try/catch —— 将来官方再占用该组合，最多是这个面板失去快捷键，**不会**再影响应用启动。装过 0.1.0 的请更新后重新安装 bundle。
+
+---
+
 ## 验证状态
 
-- `npm test` → **18/18 通过**。
+- `npm test` → **19/19 通过**。
   - 主机端（12 项）：真实语料上的中文子串命中、时间倒序、子代理过滤，以及完整的 *HTTP 路由 → RPC 信封 → 查询 → 负载* 往返，外加 405 / 404 / 400 / 信封不匹配等失败路径。
-  - 浏览器端（6 项）：以页面加载它的方式（`window.__ModuleLoader__` + 工厂 + `require` 打桩）载入模块包，断言模块 id 等于包名、**只 require `react`**、图标与面板注册的 `id`/`key` 一致、快捷键六平台定义合法，并把面板渲染成元素树来验证空态 / 有结果态 / 命中高亮。
+  - 浏览器端（7 项）：以页面加载它的方式（`window.__ModuleLoader__` + 工厂 + `require` 打桩）载入模块包，断言模块 id 等于包名、**只 require `react`**、图标与面板注册的 `id`/`key` 一致、快捷键只声明桌面平台、**快捷键注册被拒时不会拖垮插件激活**，并把面板渲染成元素树来验证空态 / 有结果态 / 命中高亮。
 - 安装结果：`application: "applied"`，`warnings: []`。
 - 主机端：`POST /session-search/search` 返回 **401**（路由存在且被准入栅栏保护），而不存在的通道返回 405。
 - 客户端：实时槽位检查显示 `session-search` 在 `sidebar.panellist`（order 5）与 `main`（同 key）中**均已注册且 active**。
@@ -176,6 +186,7 @@ test/client.test.mjs        浏览器端测试
 ## 已知限制
 
 - **打开命中只能跳到会话，不能定位到那一条记录。** DSH 没有任何公开的「滚动到某个 seq」API；相关机制（`ChatNavigation.navigateToTurn`、`input.loadThrough(seq)`）是聊天面板内部的。
+- 快捷键**仅桌面端有效**；Web 平台留空，以免与官方 Web 绑定撞车（见[兼容性](#兼容性)）。侧边栏图标始终可用。
 - 索引在内存里，随 Host 进程存活；不做磁盘持久化（冷建约 1.2 s，通常无感）。
 - 匹配是**子串**匹配，不是分词，也不是语义检索。多个以空格分隔的关键词之间是 AND 关系。
 - 单条记录文本超过 `maxCharsPerRecord`（默认 64 KiB）的部分会被截断。

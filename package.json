@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-search",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Global search across the content of every DSH session, with results ordered by content time.",
   "keywords": [
@@ -39,6 +39,7 @@
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "icon": "./icon.svg",
@@ -49,14 +50,6 @@
     "client": {
       "platform": "web",
       "immediately": true
-    }
-  },
-  "peerDependencies": {
-    "@deepseek-ai/cordis": "~4.0.4"
-  },
-  "peerDependenciesMeta": {
-    "@deepseek-ai/cordis": {
-      "optional": true
     }
   },
   "engines": {

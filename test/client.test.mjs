@@ -175,12 +175,33 @@ test('apply registers the panel icon, the matching main panel and the shortcut',
 
   assert.equal(shortcuts.length, 1)
   assert.equal(shortcuts[0].id, 'session-search.open')
-  // A definition is validated across all six profiles; Web-on-Linux admits almost no
-  // two-modifier combos, so it must stay unbound.
+  // Desktop profiles only. The Web profiles are unbound because `session.fork` already
+  // owns KeyF + primary+shift there, and the shortcut registry validates defaults across
+  // every declared profile — a duplicate makes the later registrant throw.
   assert.deepEqual(Object.keys(shortcuts[0].defaults).sort(), [
-    'desktop:linux', 'desktop:macos', 'desktop:windows', 'web:macos', 'web:windows',
+    'desktop:linux', 'desktop:macos', 'desktop:windows',
   ])
   assert.equal(shortcuts[0].resolve().status, 'handled')
+})
+
+test('a rejected shortcut registration must not break plugin activation', () => {
+  // Regression: claiming a key another plugin already owns used to throw out of `apply`,
+  // and when that other plugin was `ui-workspace` the whole web boot failed.
+  const { factory } = loadClientBundle()
+  const plugin = factory((specifier) => {
+    if (specifier === 'react') return createReactStub()
+    throw new Error(`unexpected require(${specifier})`)
+  })
+  const { ctx, slots } = createClientContext()
+  const warnings = []
+  ctx.shortcuts.register = () => { throw new Error('Conflicting shortcut defaults: session-search.open and session.fork (web:windows)') }
+  ctx.logger = { info: () => {}, warn: (message) => warnings.push(message) }
+
+  assert.doesNotThrow(() => plugin.apply(ctx))
+  // The panel must still be there, and the degradation must be reported.
+  assert.ok(slots.some(entry => entry.options.name === 'sidebar.panellist'))
+  assert.ok(slots.some(entry => entry.options.name === 'main'))
+  assert.ok(warnings.some(message => /shortcut unavailable/.test(message)))
 })
 
 test('the panel icon renders an svg at the requested size', () => {
