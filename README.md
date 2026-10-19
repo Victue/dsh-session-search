@@ -148,11 +148,14 @@ active one into view:
 - **Search all history** hands the current query to the indexed dialog, which also searches
   records the chat has not rendered yet.
 
-How it works: matches are collected from the transcript's rendered text nodes and painted with the
-**CSS Custom Highlight API** (`::highlight(...)`), so the transcript's DOM is never mutated and
-React never sees an unexpected change. This is the same boundary Chromium's own find-in-page works
-under — the chat virtualizer only renders a window of turns, so content outside that window is
-found through **Search all history** instead.
+How it works: matches are collected from the transcript's rendered text nodes, and each one is
+painted as a rectangle on the plugin's **own overlay layer**, positioned from
+`Range.getClientRects()`. The transcript's DOM is never mutated and React never sees an unexpected
+change; the layer repaints on transcript scroll, window resize and virtualizer updates. (An earlier
+version used the CSS Custom Highlight API, which failed silently on some builds — the overlay has no
+such dependency.) This is the same boundary Chromium's own find-in-page works under — the chat
+virtualizer only renders a window of turns, so content outside that window is found through
+**Search all history** instead.
 
 > **Why this is DOM-based.** DSH has no public API to navigate the transcript
 > (`ChatNavigation.navigateToTurn`, `scrollToTurn` and `loadThrough` are private to the chat panel;

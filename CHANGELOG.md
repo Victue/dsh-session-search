@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] — 2026-10-19
+
+### Fixed
+
+- **The find bar highlighted nothing.** Painting relied on the CSS Custom Highlight API, which
+  failed silently on this build. Matches are now drawn as rectangles on the plugin's own overlay
+  layer, positioned from each range's client rects: no optional API to be missing, and the
+  transcript's DOM is still never mutated. The layer repaints on transcript scroll, window resize
+  and virtualizer changes.
+- The bar now reports *there is no conversation content to search* when the transcript container
+  cannot be found, instead of claiming "no matches", so a future container rename is diagnosable
+  instead of silent.
+
 ## [0.3.1] — 2026-10-19
 
 ### Fixed
