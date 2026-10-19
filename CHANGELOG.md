@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-10-19
+
+### Added
+
+- **Browser-style find bar in the conversation (`Ctrl/Cmd+F`).** A small floating bar searches the
+  rendered transcript, paints every match with the CSS Custom Highlight API — no DOM mutation — and
+  scrolls the active match into view. `Enter` / `Shift+Enter` (or the ‹ › buttons) cycle matches,
+  `Esc` closes. The session header's magnifier now opens this bar as well.
+  - DSH exposes no public "scroll to seq" API and the chat virtualizer decides what is in the DOM,
+    so matches come from the text the transcript has rendered — the same boundary a browser's
+    find-in-page works under. *Search all history* hands the query to the indexed dialog, which
+    sees every stored record including history the chat has not rendered yet.
+  - Strictly additive: the transcript DOM is never mutated, and the bar degrades to "no matches"
+    when the Custom Highlight API or the transcript container is unavailable.
+- The `Ctrl/Cmd+F` shortcut is declared on desktop profiles only and registered behind the same
+  guard as the existing one, so a future conflicting default can never fail activation.
+
 ## [0.2.1] — 2026-10-19
 
 ### Fixed

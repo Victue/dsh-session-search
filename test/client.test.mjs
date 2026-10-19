@@ -205,13 +205,24 @@ test('apply registers all four surfaces plus the desktop-only shortcut', () => {
   assert.deepEqual(header.options.inject(), { ctx })
   assert.deepEqual(dialog.options.inject(), { ctx })
 
-  assert.equal(shortcuts.length, 1)
-  assert.equal(shortcuts[0].id, 'session-search.open')
+  assert.equal(shortcuts.length, 2)
+  const byId = (id) => shortcuts.find((entry) => entry.id === id)
+  const panelShortcut = byId('session-search.open')
+  const findShortcut = byId('session-search.find')
+  assert.ok(panelShortcut, 'the panel shortcut must be registered')
+  assert.ok(findShortcut, 'the find shortcut must be registered')
   // Desktop profiles only: `session.fork` owns KeyF + primary+shift on Web profiles.
-  assert.deepEqual(Object.keys(shortcuts[0].defaults).sort(), [
+  assert.deepEqual(Object.keys(panelShortcut.defaults).sort(), [
     'desktop:linux', 'desktop:macos', 'desktop:windows',
   ])
-  assert.equal(shortcuts[0].resolve().status, 'handled')
+  assert.deepEqual(panelShortcut.defaults['desktop:windows'], { code: 'KeyF', modifiers: ['primary', 'shift'] })
+  // Ctrl/Cmd+F: primary only, which no shipped shortcut claims.
+  assert.deepEqual(Object.keys(findShortcut.defaults).sort(), [
+    'desktop:linux', 'desktop:macos', 'desktop:windows',
+  ])
+  assert.deepEqual(findShortcut.defaults['desktop:windows'], { code: 'KeyF', modifiers: ['primary'] })
+  assert.equal(panelShortcut.resolve().status, 'handled')
+  assert.equal(findShortcut.resolve().status, 'handled')
 })
 
 test('a rejected shortcut registration must not break plugin activation', () => {
@@ -226,7 +237,7 @@ test('a rejected shortcut registration must not break plugin activation', () => 
   assert.doesNotThrow(() => plugin.apply(ctx))
   assert.ok(slots.some((entry) => entry.options.name === 'sidebar.panellist'))
   assert.ok(slots.some((entry) => entry.options.name === 'main'))
-  assert.ok(warnings.some((message) => /shortcut unavailable/.test(message)))
+  assert.ok(warnings.some((message) => /shortcut .*unavailable/.test(message)))
 })
 
 test('the panel icon renders an svg at the requested size', () => {

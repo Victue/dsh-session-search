@@ -73,8 +73,9 @@ For **searching inside the session you are reading**, the entry point is the `li
 `conversation.session.header.utilities` — the right-aligned action row of the conversation header.
 It is additive (`replaceRisk: none`, ids `open-in-app` / `schedule-catalog` /
 `session-log-download` already sit there), always in reach, and needs no new global chrome. The
-result dialog renders in `shell.overlay`, the frame-wide layer documented as "the additive seat for
-a frame-wide surface of your own", so it floats above every column without stealing one.
+find bar and the result dialog share one `shell.overlay` entry — the frame-wide layer documented as
+"the additive seat for a frame-wide surface of your own" — so they float above every column without
+stealing one.
 
 ---
 
@@ -136,20 +137,36 @@ path relative to the patch file, or an absolute path):
    after, the match highlighted and untruncated. Use previous/next to move between hits, and
    *Open session* to jump to the session itself.
 
-### Search inside one session
+### Find in the conversation (Ctrl/Cmd+F)
 
-A magnifier button sits in the conversation header's right-aligned utilities, next to the shipped
-session actions. Clicking it opens the same search dialog, already scoped to the session you are
-reading — type, pick a hit, and read it in context without leaving the conversation. `Esc` steps
-back from a hit to the results, then closes the dialog.
+Press `Ctrl/Cmd+F`, or click the magnifier in the conversation header's right-aligned utilities.
+A small floating bar appears, searches the transcript, paints **every match** and scrolls the
+active one into view:
 
-Queries are debounced by 220 ms and each superseded query is aborted. `Esc` clears the box.
+- `Enter` / `Shift+Enter`, or `‹ ›`, cycle matches; `Esc` closes and clears the highlights.
+- The match counter shows the position (`3 / 17`).
+- **Search all history** hands the current query to the indexed dialog, which also searches
+  records the chat has not rendered yet.
 
-> **On "locating" a hit.** DSH exposes no public API to scroll the transcript to a given event
-> sequence (`ChatNavigation.navigateToTurn` / `input.loadThrough(seq)` are private to the chat
-> panel). This plugin therefore locates a hit by showing the matched record *in its surrounding
-> context* inside its own dialog, with the record highlighted and no truncation. Precise scroll
-> positioning inside the official transcript is not achievable from a plugin today.
+How it works: matches are collected from the transcript's rendered text nodes and painted with the
+**CSS Custom Highlight API** (`::highlight(...)`), so the transcript's DOM is never mutated and
+React never sees an unexpected change. This is the same boundary Chromium's own find-in-page works
+under — the chat virtualizer only renders a window of turns, so content outside that window is
+found through **Search all history** instead.
+
+> **Why this is DOM-based.** DSH has no public API to navigate the transcript
+> (`ChatNavigation.navigateToTurn`, `scrollToTurn` and `loadThrough` are private to the chat panel;
+> slot occupants only receive read-only snapshot selectors such as `useChat`). Reading rendered text
+> is the only remaining route, and it is done without writing to another plugin's DOM. If a future
+> release renames the transcript container, the bar degrades to "no matches" instead of breaking.
+
+Queries in the indexed surfaces are debounced by 220 ms and each superseded query is aborted.
+
+> **On "locating" a hit.** The find bar (`Ctrl/Cmd+F`) locates matches in the *rendered* transcript
+> by scrolling them into view — see the section above. The indexed dialog takes the complementary
+> job: it locates a hit in **stored history**, including turns the chat has not rendered, by showing
+> the record in its surrounding context. Neither can ask the chat to jump to an arbitrary event
+> sequence: `ChatNavigation.navigateToTurn` / `input.loadThrough(seq)` are private to the chat panel.
 
 ---
 
@@ -297,11 +314,11 @@ was not performed. Per `cordis-plugin-development/references/verification.md`, c
 
 ## Known limitations
 
-- **A hit cannot be scrolled to inside the transcript.** DSH exposes no public "scroll to seq"
-  API; the machinery (`ChatNavigation.navigateToTurn`, `input.loadThrough(seq)`) is private to the
-  chat panel. A hit is located by showing the matched record in its surrounding context inside this
-  plugin's dialog instead — that view is exact (the matched record, untruncated, plus its
-  neighbours), but it is not the official transcript.
+- **The find bar only reaches rendered content.** The chat virtualizer keeps a window of turns in
+  the DOM, so `Ctrl/Cmd+F` (like a browser's find-in-page) sees only what is rendered; *Search all
+  history* in the bar, or the indexed dialog, covers the rest. Deep links to an event sequence are
+  still impossible: `ChatNavigation.navigateToTurn` / `input.loadThrough(seq)` are private to the
+  chat panel.
 - The keyboard shortcut is **desktop-only**; Web profiles stay unbound so the plugin cannot collide
   with a shipped Web binding (see [Compatibility](#compatibility)). The sidebar icon always works.
 - The index lives in memory for the lifetime of the Host process; it is not persisted to disk (a
